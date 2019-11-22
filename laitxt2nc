@@ -1,0 +1,199 @@
+program laitxt2nc
+use netcdf
+implicit none
+
+character(len=*),parameter :: csvfile="LAI210_Wuhan20.csv", input_file="LAIS46.USA36.ncf", output_file="LAIS46.Wuhan20.ncf"
+integer,parameter :: ndims=2
+integer,parameter :: nx=98, ny=98, nlay=1, nt=46
+integer :: nxy
+integer :: ncid_input, ncid_output
+integer :: dimid_date, dimid_var, dimid_tstep, dimid_col, dimid_row, dimid_lay
+integer :: dimid_tflag(3), dimid_lai(4)
+integer :: varid_laiin, varid_tflagin
+integer :: varid_laiout, varid_tflagout
+integer,allocatable :: tflag(:,:,:)
+real,allocatable :: lai(:,:,:,:)
+real,allocatable :: cell(:), x(:), y(:), laixy(:,:)
+integer :: i, j, k, m
+
+character (len=*), parameter :: units =     'units'
+character (len=*), parameter :: units_tflag =     '<YYYYDDD,HHMMSS>'
+character (len=*), parameter :: longname = 'long_name'
+character (len=*), parameter :: longname_tflag = 'TFLAG           '
+character (len=*), parameter :: vardesc =  'var_desc'
+character (len=*), parameter :: vardesc_tflag =  'Timestep-valid flags:  (1) YYYYDDD or (2) HHMMSS               '
+character (len=*), parameter :: longname_lai = 'LAIS            '
+character (len=*), parameter :: units_lai =     'nondimension    '
+character (len=*), parameter :: vardesc_lai =  ''
+
+character (len=*), parameter :: ioapi = 'IOAPI_VERSION'
+character (len=*), parameter :: version = 'ioapi-3.2: $Id: init3.F90 120 2019-06-21 14:18:20z coats$'
+character (len=*), parameter :: EXEC = 'EXEC_ID'
+character (len=*), parameter :: ID = '????????????????'
+character (len=*), parameter :: FTYPE = 'FTYPE'
+integer, parameter :: FTYPE_num = 1
+character (len=*), parameter :: CDATE = 'CDATE'
+integer, parameter :: CDATE_num = 2019303
+character (len=*), parameter :: CTIME = 'CTIME'
+integer, parameter :: CTIME_num = 90024
+character (len=*), parameter :: WDATE = 'WDATE'
+integer, parameter :: WDATE_num = 2019303
+character (len=*), parameter :: WTIME = 'WTIME'
+integer, parameter :: WTIME_num = 90024
+character (len=*), parameter :: SDATE = 'SDATE'
+integer, parameter :: SDATE_num = 0
+character (len=*), parameter :: STIME = 'STIME'
+integer, parameter :: STIME_num = 0
+character (len=*), parameter :: TSTEP = 'TSTEP'
+integer, parameter :: TSTEP_num = 10000
+character (len=*), parameter :: NTHIK = 'NTHIK'
+integer, parameter :: NTHIK_num = 1
+character (len=*), parameter :: NCOLS = 'NCOLS'
+integer, parameter :: NCOLS_num = 98
+character (len=*), parameter :: NROWS = 'NROWS'
+integer, parameter :: NROWS_num = 98
+character (len=*), parameter :: NLAYS = 'NLAYS'
+integer, parameter :: NLAYS_num = 1
+character (len=*), parameter :: NVARS = 'NVARS'
+integer, parameter :: NVARS_num = 1
+character (len=*), parameter :: GDTYP = 'GDTYP'
+integer, parameter :: GDTYP_num = 2
+character (len=*), parameter :: P_ALP = 'P_ALP'
+integer, parameter :: P_ALP_num = 30
+character (len=*), parameter :: p_BET = 'P_BET'
+integer, parameter :: P_BET_num = 60
+character (len=*), parameter :: p_GAM = 'P_GAM'
+integer, parameter :: P_GAM_num = 114
+character (len=*), parameter :: XCENT = 'XCENT'
+integer, parameter :: XCENT_num = 114
+character (len=*), parameter :: YCENT = 'YCENT'
+integer, parameter :: YCENT_num = 30
+character (len=*), parameter :: XORIG = 'XORIG'
+integer, parameter :: XORIG_num = -107800
+character (len=*), parameter :: YORIG = 'YORIG'
+integer, parameter :: YORIG_num = -107800
+character (len=*), parameter :: XCELL = 'XCELL'
+integer, parameter :: XCELL_num = 22000
+character (len=*), parameter :: YCELL = 'YCELL'
+integer, parameter :: YCELL_num = 22000
+character (len=*), parameter :: VGTYP = 'VGTYP'
+integer, parameter :: VGTYP_num = 0
+character (len=*), parameter :: VGTOP = 'VGTOP'
+integer, parameter :: VGTOP_num = 0
+character (len=*), parameter :: VGLVLS = 'VGLVLS'
+integer, parameter :: VGLVLS_num(2) = (/0,0/)
+character (len=*), parameter :: GDNAM = 'GDNAM'
+character (len=*), parameter :: GDNAM_name = 'Grid-Wuhan20'
+character (len=*), parameter :: UPNAM = 'UPNAM'
+character (len=*), parameter :: UPNAM_name = 'CNVT_LAI'
+character (len=*), parameter :: VAR_LIST = 'VAR-LIST'
+character (len=*), parameter :: VAR_name = 'LAIS'
+character (len=*), parameter :: FILEDESC = 'FILEDESC'
+character (len=*), parameter :: FILEDESC_name = ''
+character (len=*), parameter :: HISTORY = 'HISTORY'
+character (len=*), parameter :: HISTORY_name = ''
+nxy=nx*ny
+
+allocate(tflag(2,1,nt))
+allocate(lai(nx,ny,1,nt))
+allocate(cell(nxy), x(nxy), y(nxy), laixy(nt,nxy))
+
+open(11,file=csvfile,status='old')
+read(11,*) !//
+do k=1,nxy
+     read(11,*) cell(k), x(k), y(k), laixy(:,k)
+end do
+
+laixy(46,:)=laixy(45,:)
+
+do m=1,nt
+   do j=1,ny
+      do i=1,nx
+         lai(i,j,1,m)=laixy(m,i+nx*(j-1))
+      end do
+   end do
+end do
+close(11)
+
+call check(nf90_open(input_file,nf90_NoWrite,ncid_input))
+call check(nf90_inq_varid(ncid_input,"TFLAG",varid_tflagin))
+call check(nf90_get_var(ncid_input,varid_tflagin,tflag))
+call check(nf90_close(ncid_input))
+
+call check(nf90_create(output_file,NF90_CLOBBER,ncid_output))
+call check(nf90_def_dim(ncid_output,"DATE-TIME",2,dimid_date))
+call check(nf90_def_dim(ncid_output,"VAR",1,dimid_var))
+call check(nf90_def_dim(ncid_output,"TSTEP",nt,dimid_tstep))
+call check(nf90_def_dim(ncid_output,"COL",nx,dimid_col))
+call check(nf90_def_dim(ncid_output,"ROW",ny,dimid_row))
+call check(nf90_def_dim(ncid_output,"LAY",nlay,dimid_lay))
+dimid_tflag=(/dimid_date,dimid_var,dimid_tstep/)
+dimid_lai=(/dimid_col,dimid_row,dimid_lay,dimid_tstep/)
+call check(nf90_def_var(ncid_output,"TFLAG",NF90_INT,dimid_tflag,varid_tflagout))
+call check(nf90_def_var(ncid_output,"LAIS",NF90_DOUBLE,dimid_lai,varid_laiout))
+
+call check(nf90_put_att(ncid_output,varid_tflagout,units,units_tflag))
+call check(nf90_put_att(ncid_output,varid_tflagout,longname,longname_tflag))
+call check(nf90_put_att(ncid_output,varid_tflagout,vardesc,vardesc_tflag))
+call check(nf90_put_att(ncid_output,varid_laiout,units,units_lai))
+call check(nf90_put_att(ncid_output,varid_laiout,longname,longname_lai))
+call check(nf90_put_att(ncid_output,varid_laiout,vardesc,vardesc_lai))
+
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,ioapi,version))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,exec,id))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,FTYPE,FTYPE_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,CDATE,CDATE_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,CTIME,CTIME_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,WDATE,WDATE_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,WTIME,WTIME_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,SDATE,SDATE_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,STIME,STIME_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,TSTEP,TSTEP_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,NTHIK,NTHIK_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,NCOLS,NCOLS_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,NROWS,NROWS_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,NLAYS,NLAYS_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,NVARS,NVARS_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,GDTYP,GDTYP_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,P_ALP,P_ALP_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,P_BET,P_BET_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,P_GAM,P_GAM_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,XCENT,XCENT_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,YCENT,YCENT_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,XORIG,XORIG_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,YORIG,YORIG_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,XCELL,XCELL_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,YCELL,YCELL_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,VGTYP,VGTYP_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,VGTOP,VGTOP_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,VGLVLS,VGLVLS_num))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,GDNAM,GDNAM_name))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,UPNAM,UPNAM_name))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,VAR_LIST,VAR_name))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,FILEDESC,FILEDESC_name))
+call check(nf90_put_att(ncid_output,NF90_GLOBAL,HISTORY,HISTORY_name))
+call check(nf90_enddef(ncid_output))
+
+call check(nf90_put_var(ncid_output,varid_tflagout,tflag))
+call check(nf90_put_var(ncid_output,varid_laiout,lai))
+
+call check(nf90_close(ncid_output))
+
+deallocate(tflag)
+deallocate(lai)
+deallocate(x,y,cell,laixy)
+
+contains
+subroutine check(status)
+use netcdf
+
+integer,intent(in) :: status
+
+if(status /= nf90_noerr) then
+  print*,trim(nf90_strerror(status))
+  stop 2
+end if
+
+end subroutine check
+
+end program laitxt2nc
