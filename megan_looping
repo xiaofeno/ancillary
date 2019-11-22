@@ -1,0 +1,151 @@
+#!/bin/csh -f
+
+set APPL1 = Wuhan20
+set APPL2 = Wuhan10
+set APPL3 = Wuhan5
+
+set START_DATE = "2018-11-01"     #> beginning date (Oct.  1, 2015)
+set END_DATE   = "2018-11-05"     #> ending date    (Dec. 31, 2016)
+
+set TODAYG = ${START_DATE}
+set TODAYJ = `date -ud "${START_DATE}" +%Y%j` #> Convert YYYY-MM-DD to YYYYJJJ
+set START_DAY = ${TODAYJ} 
+set STOP_DAY = `date -ud "${END_DATE}" +%Y%j` #> Convert YYYY-MM-DD to YYYYJJJ
+
+# ==============================
+# txt2ioapi
+# ==============================
+
+ln -sf /home/shaw/CMAS/MEGAN/Output/LAI210_${APPL1}.csv /home/shaw/CMAS/MEGAN/Input/MAP/
+ln -sf /home/shaw/CMAS/MEGAN/Output/PFT210_${APPL1}.csv /home/shaw/CMAS/MEGAN/Input/MAP/
+ln -sf /home/shaw/CMAS/MEGAN/Output/EF210_${APPL1}.csv /home/shaw/CMAS/MEGAN/Input/MAP/
+  
+cd /home/shaw/CMAS/MEGAN/work  
+./run.txt2ioapi.v210.${APPL1}.csh
+wait
+
+ln -sf /home/shaw/CMAS/MEGAN/Output/LAI210_${APPL2}.csv /home/shaw/CMAS/MEGAN/Input/MAP/
+ln -sf /home/shaw/CMAS/MEGAN/Output/PFT210_${APPL2}.csv /home/shaw/CMAS/MEGAN/Input/MAP/
+ln -sf /home/shaw/CMAS/MEGAN/Output/EF210_${APPL2}.csv /home/shaw/CMAS/MEGAN/Input/MAP/
+  
+cd /home/shaw/CMAS/MEGAN/work  
+./run.txt2ioapi.v210.${APPL2}.csh
+wait
+
+ln -sf /home/shaw/CMAS/MEGAN/Output/LAI210_${APPL3}.csv /home/shaw/CMAS/MEGAN/Input/MAP/
+ln -sf /home/shaw/CMAS/MEGAN/Output/PFT210_${APPL3}.csv /home/shaw/CMAS/MEGAN/Input/MAP/
+ln -sf /home/shaw/CMAS/MEGAN/Output/EF210_${APPL3}.csv /home/shaw/CMAS/MEGAN/Input/MAP/
+  
+cd /home/shaw/CMAS/MEGAN/work  
+./run.txt2ioapi.v210.${APPL3}.csh
+wait
+
+cd /home/shaw/CMAS/MEGAN/Input/MAP
+/opt/pgi/linux86-64/19.4/bin/pgf90 laitxt2nc.${APPL1}.f90 -I/home/shaw/Libraries/netcdf/include -L/home/shaw/Libraries/netcdf/lib -lnetcdff -lnetcdf
+./a.out
+wait
+
+cd /home/shaw/CMAS/MEGAN/Input/MAP
+/opt/pgi/linux86-64/19.4/bin/pgf90 laitxt2nc.${APPL2}.f90 -I/home/shaw/Libraries/netcdf/include -L/home/shaw/Libraries/netcdf/lib -lnetcdff -lnetcdf
+./a.out
+wait
+
+cd /home/shaw/CMAS/MEGAN/Input/MAP
+/opt/pgi/linux86-64/19.4/bin/pgf90 laitxt2nc.${APPL3}.f90 -I/home/shaw/Libraries/netcdf/include -L/home/shaw/Libraries/netcdf/lib -lnetcdff -lnetcdf
+./a.out
+wait
+
+# =====================================================================
+#> Begin Loop Through Simulation Days
+# =====================================================================
+
+while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
+
+  #> Retrieve Calendar day Information
+  set YYYYMMDD = `date -ud "${TODAYG}" +%Y%m%d` #> Convert YYYY-MM-DD to YYYYMMDD
+  set YYYYMM = `date -ud "${TODAYG}" +%Y%m`     #> Convert YYYY-MM-DD to YYYYMM
+  set YYMMDD = `date -ud "${TODAYG}" +%y%m%d`   #> Convert YYYY-MM-DD to YYMMDD
+  set YYYYJJJ = $TODAYJ
+  set DAY = `date -ud "${TODAYG}" +%d`
+  set MONTH = `date -ud "${TODAYG}" +%m`        #> Convert YYYY-MM-DD to MM
+  set YEAR = `date -ud "${TODAYG}" +%Y`         #> Convert YYYY-MM-DD to YYYY
+
+  #> Calculate Yesterday's Date
+  set YESTERDAY = `date -ud "${TODAYG}-1days" +%Y-%m-%d` #> Convert YYYY-MM-DD to YYYYJJJ
+  set YYYYMMDDY = `date -ud "${TODAYG}-1days" +%Y%m%d`
+  set YYYYJJJY = `date -ud "${TODAYG}-1days" +%Y%j`
+  set DAYY = `date -ud "${TODAYG}-1days" +%d`
+  set MONTHY = `date -ud "${TODAYG}-1days" +%m`        #> Convert YYYY-MM-DD to MM
+  set YEARY = `date -ud "${TODAYG}-1days" +%Y`         #> Convert YYYY-MM-DD to YYYY
+
+  # ==============================
+  # met2mgn
+  # ==============================
+  
+  cd /home/shaw/CMAS/MEGAN/work 
+  sed -i "54s/${YYYYJJJY}/${YYYYJJJ}/g"  run.met2mgn.v210.${APPL1}.csh
+  sed -i "55s/${YYYYJJJY}/${YYYYJJJ}/g"  run.met2mgn.v210.${APPL1}.csh
+  sed -i "58s/${MONTHY}/${MONTH}/g"  run.met2mgn.v210.${APPL1}.csh
+  sed -i "59s/${DAYY}/${DAY}/g"  run.met2mgn.v210.${APPL1}.csh
+  ./run.met2mgn.v210.${APPL1}.csh
+  wait
+
+  sed -i "54s/${YYYYJJJY}/${YYYYJJJ}/g"  run.met2mgn.v210.${APPL2}.csh
+  sed -i "55s/${YYYYJJJY}/${YYYYJJJ}/g"  run.met2mgn.v210.${APPL2}.csh
+  sed -i "58s/${MONTHY}/${MONTH}/g"  run.met2mgn.v210.${APPL2}.csh
+  sed -i "59s/${DAYY}/${DAY}/g"  run.met2mgn.v210.${APPL2}.csh
+  ./run.met2mgn.v210.${APPL2}.csh
+  wait
+
+  sed -i "54s/${YYYYJJJY}/${YYYYJJJ}/g"  run.met2mgn.v210.${APPL3}.csh
+  sed -i "55s/${YYYYJJJY}/${YYYYJJJ}/g"  run.met2mgn.v210.${APPL3}.csh
+  sed -i "58s/${MONTHY}/${MONTH}/g"  run.met2mgn.v210.${APPL3}.csh
+  sed -i "59s/${DAYY}/${DAY}/g"  run.met2mgn.v210.${APPL3}.csh
+  ./run.met2mgn.v210.${APPL3}.csh
+  wait
+
+  # ===============================
+  # emproc
+  # ===============================
+
+  sed -i "31s/${YYYYJJJY}/${YYYYJJJ}/g"  run.emproc.v210.${APPL1}.csh
+  sed -i "32s/${YYYYJJJY}/${YYYYJJJ}/g"  run.emproc.v210.${APPL1}.csh
+  ./run.emproc.v210.${APPL1}.csh
+  wait
+
+  sed -i "31s/${YYYYJJJY}/${YYYYJJJ}/g"  run.emproc.v210.${APPL2}.csh
+  sed -i "32s/${YYYYJJJY}/${YYYYJJJ}/g"  run.emproc.v210.${APPL2}.csh
+  ./run.emproc.v210.${APPL2}.csh
+  wait
+
+  sed -i "31s/${YYYYJJJY}/${YYYYJJJ}/g"  run.emproc.v210.${APPL3}.csh
+  sed -i "32s/${YYYYJJJY}/${YYYYJJJ}/g"  run.emproc.v210.${APPL3}.csh
+  ./run.emproc.v210.${APPL3}.csh
+  wait
+
+  # ===============================
+  # mgn2mech
+  # ===============================  
+
+  sed -i "31s/${YYYYJJJY}/${YYYYJJJ}/g"  run.mgn2mech.v210.${APPL1}.csh
+  sed -i "32s/${YYYYJJJY}/${YYYYJJJ}/g"  run.mgn2mech.v210.${APPL1}.csh
+  ./run.mgn2mech.v210.${APPL1}.csh
+  wait
+
+  sed -i "31s/${YYYYJJJY}/${YYYYJJJ}/g"  run.mgn2mech.v210.${APPL2}.csh
+  sed -i "32s/${YYYYJJJY}/${YYYYJJJ}/g"  run.mgn2mech.v210.${APPL2}.csh
+  ./run.mgn2mech.v210.${APPL2}.csh
+  wait
+
+  sed -i "31s/${YYYYJJJY}/${YYYYJJJ}/g"  run.mgn2mech.v210.${APPL3}.csh
+  sed -i "32s/${YYYYJJJY}/${YYYYJJJ}/g"  run.mgn2mech.v210.${APPL3}.csh
+  ./run.mgn2mech.v210.${APPL3}.csh
+  wait
+
+  #> Increment both Gregorian and Julian Days
+  set TODAYG = `date -ud "${TODAYG}+1days" +%Y-%m-%d` #> Add a day for tomorrow
+  set TODAYJ = `date -ud "${TODAYG}" +%Y%j` #> Convert YYYY-MM-DD to YYYYJJJ
+
+end  #Loop to the next Simulation Day
+
+exit
