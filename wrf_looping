@@ -1,0 +1,107 @@
+#!/bin/csh -f
+
+set APP1 = Wuhan20
+set APP2 = Wuhan10
+set APP3 = Wuhan5
+
+set START_DATE = "2018-11-01"     #> beginning date (Oct.  1, 2015)
+set END_DATE   = "2018-11-01"     #> ending date    (Dec. 31, 2016)
+
+# =====================================================================
+#> Begin Loop Through Simulation Days
+# =====================================================================
+
+set TODAYG = ${START_DATE}
+set TODAYJ = `date -ud "${START_DATE}" +%Y%j` #> Convert YYYY-MM-DD to YYYYJJJ
+set START_DAY = ${TODAYJ} 
+set STOP_DAY = `date -ud "${END_DATE}" +%Y%j` #> Convert YYYY-MM-DD to YYYYJJJ
+
+while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
+
+  #> Retrieve Calendar day Information
+  set YYYYMMDD = `date -ud "${TODAYG}" +%Y%m%d` #> Convert YYYY-MM-DD to YYYYMMDD
+  set YYYYMM = `date -ud "${TODAYG}" +%Y%m`     #> Convert YYYY-MM-DD to YYYYMM
+  set YYMMDD = `date -ud "${TODAYG}" +%y%m%d`   #> Convert YYYY-MM-DD to YYMMDD
+  set YYYYJJJ = $TODAYJ
+  set DAY = `date -ud "${TODAYG}" +%d`
+  set MONTH = `date -ud "${TODAYG}" +%m`        #> Convert YYYY-MM-DD to MM
+  set YEAR = `date -ud "${TODAYG}" +%Y`         #> Convert YYYY-MM-DD to YYYY
+
+  #> Calculate Yesterday's Date
+  set YESTERDAY = `date -ud "${TODAYG}-1days" +%Y-%m-%d` #> Convert YYYY-MM-DD to YYYYJJJ
+  set YYYYMMDDY = `date -ud "${TODAYG}-1days" +%Y%m%d`
+  set YYYYJJJY = `date -ud "${TODAYG}-1days" +%Y%j`
+  set DAYY = `date -ud "${TODAYG}-1days" +%d`
+  set MONTHY = `date -ud "${TODAYG}-1days" +%m`        #> Convert YYYY-MM-DD to MM
+  set YEARY = `date -ud "${TODAYG}-1days" +%Y`         #> Convert YYYY-MM-DD to YYYY
+
+  #> Calculate tomorrow's Date
+  set TOMORROW = `date -ud "${TODAYG}+1days" +%Y-%m-%d` #> Convert YYYY-MM-DD to YYYYJJJ
+  set YYYYMMDDT = `date -ud "${TODAYG}+1days" +%Y%m%d`
+  set YYYYJJJT = `date -ud "${TODAYG}+1days" +%Y%j`
+  set DAYT = `date -ud "${TODAYG}+1days" +%d`
+  set MONTHT = `date -ud "${TODAYG}+1days" +%m`        #> Convert YYYY-MM-DD to MM
+  set YEART = `date -ud "${TODAYG}+1days" +%Y`         #> Convert YYYY-MM-DD to YYYY
+
+  # ===========================
+  # WPS
+  # ===========================
+  
+  cd /home/xiao/WRF/WPS
+
+  sed -i "4s/${YESTERDAY}/${TODAYG}/g" namelist.wps
+  sed -i "5s/${TODAYG}/${TOMORROW}/g" namelist.wps
+
+  ./geogrid.exe
+  wait
+
+  ln -sf ungrib/Variable_Tables/Vtable.GFS Vtable
+
+  ./link_grib.csh ../DATA/fnl_2018
+  wait
+
+  ./ungrib.exe >& ungrib_data.log
+  wait
+
+  ./metgrid.exe
+  wait
+
+  # ===========================
+  # WRF
+  # ===========================  
+
+  cd /home/xiao/WRF/WRFV3/test/em_real
+
+  sed -i "7s/${MONTHY}/${MONTH}/g" namelist.input
+  sed -i "8s/${DAYY}/${DAY}/g" namelist.input
+  sed -i "13s/${MONTH}/${MONTHT}/g" namelist.input
+  sed -i "14s/${DAY}/${DAYT}/g" namelist.input
+
+  ln -sf ../../../WPS/met_em.d01.2018* .
+
+  ln -sf ../../../WPS/met_em.d02.2018* . #for nested run
+
+  ln -sf ../../../WPS/met_em.d03.2018* . #for nested run 
+
+  ulimit -s unlimited
+
+  /home/xiao/WRF/LIBRARIES/mpich/bin/mpirun -np 16 ./real.exe
+  wait
+
+  /home/xiao/WRF/LIBRARIES/mpich/bin/mpirun -np 16 ./wrf.exe
+  wait
+
+ ln -sf /home/xiao/WRF/WPS/data/geo_em.d01.nc /home/xiao/CMAS/CMAQ/data/mcip/${APP1}/terrain/
+ ln -sf /home/xiao/WRF/WPS/data/geo_em.d02.nc /home/xiao/CMAS/CMAQ/data/mcip/${APP2}/terrain/
+ ln -sf /home/xiao/WRF/WPS/data/geo_em.d03.nc /home/xiao/CMAS/CMAQ/data/mcip/${APP3}/terrain/
+ ln -sf /home/xiao/WRF/WRFV3/test/em_real/wrfout_d01_${TODAYG}_00:00:00 /home/xiao/CMAS/CMAQ/data/mcip/${APP1}/meter
+ ln -sf /home/xiao/WRF/WRFV3/test/em_real/wrfout_d02_${TODAYG}_00:00:00 /home/xiao/CMAS/CMAQ/data/mcip/${APP2}/meter
+ ln -sf /home/xiao/WRF/WRFV3/test/em_real/wrfout_d03_${TODAYG}_00:00:00 /home/xiao/CMAS/CMAQ/data/mcip/${APP3}/meter
+
+  #> Increment both Gregorian and Julian Days
+  set TODAYG = `date -ud "${TODAYG}+1days" +%Y-%m-%d` #> Add a day for tomorrow
+  set TODAYJ = `date -ud "${TODAYG}" +%Y%j` #> Convert YYYY-MM-DD to YYYYJJJ
+
+end  #Loop to the next Simulation Day
+
+exit
