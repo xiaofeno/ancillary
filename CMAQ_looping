@@ -1,0 +1,160 @@
+#!/bin/csh -f
+
+set APP1 = Wuhan20
+set APP2 = Wuhan10
+set APP3 = Wuhan5
+
+set START_DATE = "2018-11-03"     #> beginning date (Oct.  1, 2015)
+set END_DATE   = "2018-11-05"     #> ending date    (Dec. 31, 2016)
+
+# =====================================================================
+#> Begin Loop Through Simulation Days
+# =====================================================================
+
+set TODAYG = ${START_DATE}
+set TODAYJ = `date -ud "${START_DATE}" +%Y%j` #> Convert YYYY-MM-DD to YYYYJJJ
+set START_DAY = ${TODAYJ} 
+set STOP_DAY = `date -ud "${END_DATE}" +%Y%j` #> Convert YYYY-MM-DD to YYYYJJJ
+
+while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
+
+  #> Retrieve Calendar day Information
+  set YYYYMMDD = `date -ud "${TODAYG}" +%Y%m%d` #> Convert YYYY-MM-DD to YYYYMMDD
+  set YYYYMM = `date -ud "${TODAYG}" +%Y%m`     #> Convert YYYY-MM-DD to YYYYMM
+  set YYMMDD = `date -ud "${TODAYG}" +%y%m%d`   #> Convert YYYY-MM-DD to YYMMDD
+  set YYYYJJJ = $TODAYJ
+  set MONTH = `date -ud "${TODAYG}" +%m`        #> Convert YYYY-MM-DD to MM
+  set YEAR = `date -ud "${TODAYG}" +%Y`         #> Convert YYYY-MM-DD to YYYY
+
+  #> Calculate Yesterday's Date
+  set YESTERDAY = `date -ud "${TODAYG}-1days" +%Y-%m-%d` #> Convert YYYY-MM-DD to YYYYJJJ
+  set YYYYMMDDY = `date -ud "${TODAYG}-1days" +%Y%m%d`
+  set YYYYJJJY = `date -ud "${TODAYG}-1days" +%Y%j`
+
+  # ===========================
+  # JPROC
+  # ===========================
+  
+  cd /home/xiao/CMAS/CMAQ/UTIL/jproc/scripts
+
+  sed -i "33s/$YYYYJJJY/$YYYYJJJ/g" run_jproc_${APP1}.csh
+  sed -i "34s/$YYYYJJJY/$YYYYJJJ/g" run_jproc_${APP1}.csh
+
+  ./run_jproc_${APP1}.csh >&! jproc_${APP1}.log
+  wait
+
+  # ===========================
+  # ICON the largest domain
+  # ===========================  
+
+  cd /home/xiao/CMAS/CMAQ/PREP/icon/scripts
+  
+  sed -i "46s/${YYYYJJJY}/${YYYYJJJ}/g"  run_icon_${APP1}.csh
+  sed -i "47s/${YYYYMMDDY}/${YYYYMMDD}/g" run_icon_${APP1}.csh
+ 
+  ./run_icon_${APP1}.csh >&! icon_${APP1}.log
+  wait
+
+  # ===========================
+  # BCON the largest domain
+  # =========================== 
+
+  cd /home/xiao/CMAS/CMAQ/PREP/bcon/scripts
+
+  sed -i "52s/${YYYYJJJY}/${YYYYJJJ}/g" run_bcon_${APP1}.csh
+  sed -i "53s/${YYYYMMDDY}/${YYYYMMDD}/g" run_bcon_${APP1}.csh
+
+  ./run_bcon_${APP1}.csh >&! bcon_${APP1}.log
+  wait
+
+  # ===========================
+  # CCTM the largest domain
+  # =========================== 
+  
+  cd /home/xiao/CMAS/CMAQ/CCTM/scripts
+
+  sed -i "58s/${YESTERDAY}/${TODAYG}/g" run_cctm_${APP1}.csh
+  sed -i "59s/${YESTERDAY}/${TODAYG}/g" run_cctm_${APP1}.csh
+
+  ./run_cctm_${APP1}.csh >&! cctm_${APP1}.log
+  wait
+
+  # ===========================
+  # ICON the medium domain
+  # ===========================  
+
+  cd /home/xiao/CMAS/CMAQ/PREP/icon/scripts
+
+  sed -i "47s/${YYYYJJJY}/${YYYYJJJ}/g"  run_icon_${APP2}.csh
+  sed -i "48s/${YYYYMMDDY}/${YYYYMMDD}/g" run_icon_${APP2}.csh
+
+  ./run_icon_${APP2}.csh >&! icon_${APP2}.log
+  wait
+
+  # ===========================
+  # BCON the medium domain
+  # =========================== 
+
+  cd /home/xiao/CMAS/CMAQ/PREP/bcon/scripts
+
+  sed -i "53s/${YYYYJJJY}/${YYYYJJJ}/g" run_bcon_${APP2}.csh
+  sed -i "54s/${YYYYMMDDY}/${YYYYMMDD}/g" run_bcon_${APP2}.csh
+
+  ./run_bcon_${APP2}.csh >&! bcon_${APP2}.log
+  wait
+
+  # ===========================
+  # CCTM the medium domain
+  # =========================== 
+  
+  cd /home/xiao/CMAS/CMAQ/CCTM/scripts
+
+  sed -i "58s/${YESTERDAY}/${TODAYG}/g" run_cctm_${APP2}.csh
+  sed -i "59s/${YESTERDAY}/${TODAYG}/g" run_cctm_${APP2}.csh
+
+  ./run_cctm_${APP2}.csh >&! cctm_${APP2}.log
+  wait
+
+  # ===========================
+  # ICON the smallest domain
+  # ===========================  
+
+  cd /home/xiao/CMAS/CMAQ/PREP/icon/scripts
+
+  sed -i "47s/${YYYYJJJY}/${YYYYJJJ}/g"  run_icon_${APP3}.csh
+  sed -i "48s/${YYYYMMDDY}/${YYYYMMDD}/g" run_icon_${APP3}.csh
+
+  ./run_icon_${APP3}.csh >&! icon_${APP3}.log
+  wait
+
+  # ===========================
+  # BCON the smallest domain
+  # =========================== 
+
+  cd /home/xiao/CMAS/CMAQ/PREP/bcon/scripts
+
+  sed -i "53s/${YYYYJJJY}/${YYYYJJJ}/g" run_bcon_${APP3}.csh
+  sed -i "54s/${YYYYMMDDY}/${YYYYMMDD}/g" run_bcon_${APP3}.csh
+
+  ./run_bcon_${APP3}.csh >&! bcon_${APP3}.log
+  wait
+
+  # ===========================
+  # CCTM the smallest domain
+  # =========================== 
+  
+  cd /home/xiao/CMAS/CMAQ/CCTM/scripts
+
+  sed -i "58s/${YESTERDAY}/${TODAYG}/g" run_cctm_${APP3}.csh
+  sed -i "59s/${YESTERDAY}/${TODAYG}/g" run_cctm_${APP3}.csh
+
+  ./run_cctm_${APP3}.csh >&! cctm_${APP3}.log
+  wait
+
+  #> Increment both Gregorian and Julian Days
+  set TODAYG = `date -ud "${TODAYG}+1days" +%Y-%m-%d` #> Add a day for tomorrow
+  set TODAYJ = `date -ud "${TODAYG}" +%Y%j` #> Convert YYYY-MM-DD to YYYYJJJ
+
+end  #Loop to the next Simulation Day
+
+exit
