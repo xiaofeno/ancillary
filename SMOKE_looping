@@ -1,0 +1,148 @@
+#!/bin/csh -f
+
+set APP1 = Wuhan20
+set APP2 = Wuhan10
+set APP3 = Wuhan5
+
+set START_DATE = "2018-11-01"     #> beginning date (Oct.  1, 2015)
+set END_DATE   = "2018-11-02"     #> ending date    (Dec. 31, 2016)
+
+# =====================================================================
+#> Begin Loop Through Simulation Days
+# =====================================================================
+
+set TODAYG = ${START_DATE}
+set TODAYJ = `date -ud "${START_DATE}" +%Y%j` #> Convert YYYY-MM-DD to YYYYJJJ
+set START_DAY = ${TODAYJ} 
+set STOP_DAY = `date -ud "${END_DATE}" +%Y%j` #> Convert YYYY-MM-DD to YYYYJJJ
+
+while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
+
+  #> Retrieve Calendar day Information
+  set YYYYMMDD = `date -ud "${TODAYG}" +%Y%m%d` #> Convert YYYY-MM-DD to YYYYMMDD
+  set YYYYMM = `date -ud "${TODAYG}" +%Y%m`     #> Convert YYYY-MM-DD to YYYYMM
+  set YYMMDD = `date -ud "${TODAYG}" +%y%m%d`   #> Convert YYYY-MM-DD to YYMMDD
+  set YYYYJJJ = $TODAYJ
+  set MONTH = `date -ud "${TODAYG}" +%m`        #> Convert YYYY-MM-DD to MM
+  set YEAR = `date -ud "${TODAYG}" +%Y`         #> Convert YYYY-MM-DD to YYYY
+
+  #> Calculate Yesterday's Date
+  set YESTERDAY = `date -ud "${TODAYG}-1days" +%Y-%m-%d` #> Convert YYYY-MM-DD to YYYYJJJ
+  set YYYYMMDDY = `date -ud "${TODAYG}-1days" +%Y%m%d`
+  set YYYYJJJY = `date -ud "${TODAYG}-1days" +%Y%j`
+
+  #> Calculate tomorrow's Date
+  set TOMORROW = `date -ud "${TODAYG}+1days" +%Y-%m-%d` #> Convert YYYY-MM-DD to YYYYJJJ
+  set YYYYMMDDT = `date -ud "${TODAYG}+1days" +%Y%m%d`
+  set YYYYJJJT = `date -ud "${TODAYG}+1days" +%Y%j`
+
+  # ===========================
+  # MCIP the largest domain
+  # ===========================
+  
+  #cd /home/xiao/CMAS/CMAQ/PREP/mcip
+  
+  #sed -i "151s/${YESTERDAY}/${TODAYG}/g" run_mcip_${APP1}.csh
+  #sed -i "186s/${YESTERDAY}/${TODAYG}/g" run_mcip_${APP1}.csh
+  #sed -i "187s/${TODAYG}/${TOMORROW}/g" run_mcip_${APP1}.csh
+  #sed -i "188s/${YESTERDAY}/${TODAYG}/g" run_mcip_${APP1}.csh
+
+  #./run_mcip_${APP1}.csh >&! mcip_${APP1}.log
+  #wait
+
+  # ===========================
+  # SMOKE the largest domain
+  # ===========================  
+
+  cd /home/xiao/CMAS/SMOKE/subsys/smoke/assigns
+
+  sed -i "47s/${YYYYJJJY}/${YYYYJJJ}/g" ASSIGNS.EDGAR.cmaq.cb05_ae6.${APP1}
+  sed -i "53s/${YYYYJJJY}/${YYYYJJJ}/g" ASSIGNS.EDGAR.cmaq.cb05_ae6.${APP1}
+  sed -i "57s/${YYYYMMDDY}/${YYYYMMDD}/g" ASSIGNS.EDGAR.cmaq.cb05_ae6.${APP1}
+  sed -i "58s/${YYYYMMDDY}/${YYYYMMDD}/g" ASSIGNS.EDGAR.cmaq.cb05_ae6.${APP1}
+
+  source ASSIGNS.EDGAR.cmaq.cb05_ae6.${APP1}
+  wait
+
+  cd /home/xiao/CMAS/SMOKE/subsys/smoke/scripts/run
+
+  ./smk_edgar_${APP1}.csh >&! edgar_${APP1}.log
+  wait
+
+  # ===========================
+  # MCIP the medium domain
+  # ===========================
+  
+  #cd /home/xiao/CMAS/CMAQ/PREP/mcip
+  
+  #sed -i "151s/${YESTERDAY}/${TODAYG}/g" run_mcip_${APP2}.csh
+  #sed -i "186s/${YESTERDAY}/${TODAYG}/g" run_mcip_${APP2}.csh
+  #sed -i "187s/${TODAYG}/${TOMORROW}/g" run_mcip_${APP2}.csh
+  #sed -i "188s/${YESTERDAY}/${TODAYG}/g" run_mcip_${APP2}.csh
+
+  #./run_mcip_${APP2}.csh >&! mcip_${APP2}.log
+  #wait
+
+  # ===========================
+  # SMOKE the medium domain
+  # ===========================  
+
+  cd /home/xiao/CMAS/SMOKE/subsys/smoke/assigns
+
+  sed -i "47s/${YYYYJJJY}/${YYYYJJJ}/g" ASSIGNS.EDGAR.cmaq.cb05_ae6.${APP2}
+  sed -i "53s/${YYYYJJJY}/${YYYYJJJ}/g" ASSIGNS.EDGAR.cmaq.cb05_ae6.${APP2}
+  sed -i "57s/${YYYYMMDDY}/${YYYYMMDD}/g" ASSIGNS.EDGAR.cmaq.cb05_ae6.${APP2}
+  sed -i "58s/${YYYYMMDDY}/${YYYYMMDD}/g" ASSIGNS.EDGAR.cmaq.cb05_ae6.${APP2}
+
+  source ASSIGNS.EDGAR.cmaq.cb05_ae6.${APP2}
+  wait
+
+  cd /home/xiao/CMAS/SMOKE/subsys/smoke/scripts/run
+
+  ./smk_edgar_${APP2}.csh >&! edgar_${APP2}.log
+  wait
+
+  # ===========================
+  # MCIP the smallest domain
+  # ===========================
+  
+  #cd /home/xiao/CMAS/CMAQ/PREP/mcip
+
+  #sed -i "151s/${YESTERDAY}/${TODAYG}/g" run_mcip_${APP3}.csh
+  #sed -i "186s/${YESTERDAY}/${TODAYG}/g" run_mcip_${APP3}.csh
+  #sed -i "187s/${TODAYG}/${TOMORROW}/g" run_mcip_${APP3}.csh
+  #sed -i "188s/${YESTERDAY}/${TODAYG}/g" run_mcip_${APP3}.csh
+
+  #./run_mcip_${APP3}.csh >&! mcip_${APP3}.log
+  #wait
+
+  # ===========================
+  # SMOKE the smallest domain
+  # ===========================  
+
+  cd /home/xiao/CMAS/SMOKE/subsys/smoke/assigns
+
+  sed -i "47s/${YYYYJJJY}/${YYYYJJJ}/g" ASSIGNS.EDGAR.cmaq.cb05_ae6.${APP3}
+  sed -i "53s/${YYYYJJJY}/${YYYYJJJ}/g" ASSIGNS.EDGAR.cmaq.cb05_ae6.${APP3}
+  sed -i "57s/${YYYYMMDDY}/${YYYYMMDD}/g" ASSIGNS.EDGAR.cmaq.cb05_ae6.${APP3}
+  sed -i "58s/${YYYYMMDDY}/${YYYYMMDD}/g" ASSIGNS.EDGAR.cmaq.cb05_ae6.${APP3}
+
+  source ASSIGNS.EDGAR.cmaq.cb05_ae6.${APP3}
+  wait
+
+  cd /home/xiao/CMAS/SMOKE/subsys/smoke/scripts/run
+
+  ./smk_edgar_${APP3}.csh >&! edgar_${APP3}.log
+  wait
+
+  ln -sf /home/xiao/CMAS/SMOKE/data/run_${APP1}/output/cmaq_cb6_ae6/agts_l.edgar.${YYYYMMDD}.1.Grid-${APP1}.${APP1}.ncf /home/xiao/CMAS/CMAQ/data/emis/
+  ln -sf /home/xiao/CMAS/SMOKE/data/run_${APP2}/output/cmaq_cb6_ae6/agts_l.edgar.${YYYYMMDD}.1.Grid-${APP2}.${APP2}.ncf /home/xiao/CMAS/CMAQ/data/emis/
+  ln -sf /home/xiao/CMAS/SMOKE/data/run_${APP3}/output/cmaq_cb6_ae6/agts_l.edgar.${YYYYMMDD}.1.Grid-${APP3}.${APP3}.ncf /home/xiao/CMAS/CMAQ/data/emis/
+
+  #> Increment both Gregorian and Julian Days
+  set TODAYG = `date -ud "${TODAYG}+1days" +%Y-%m-%d` #> Add a day for tomorrow
+  set TODAYJ = `date -ud "${TODAYG}" +%Y%j` #> Convert YYYY-MM-DD to YYYYJJJ
+
+end  #Loop to the next Simulation Day
+
+exit
